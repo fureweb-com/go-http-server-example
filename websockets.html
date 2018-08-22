@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>웹소켓 테스트</title>
+</head>
+<body>
+  <input type="text" id="nickname" style="width: 50px" value="테스터"/>
+  <input id="input" type="text" />
+  <button onclick="send()">Send</button>
+
+  <pre id="output"></pre>
+  <script src="/ws.js"></script>
+
+  <script>
+    var scheme = document.location.protocol == "https:" ? "wss" : "ws";
+    var port = document.location.port ? (":" + document.location.port) : "";
+    // see app.Get("/chat", ws.Handler()) on main.go
+    var wsURL = scheme + "://" + document.location.hostname + port+"/chat";
+
+    var input = document.getElementById("input");
+    var output = document.getElementById("output");
+
+    // Ws comes from the auto-served '/ws.js'
+    var socket = new Ws(wsURL)
+    socket.OnConnect(function () {
+      output.innerHTML += "Status: Connected\n";
+    });
+
+    socket.OnDisconnect(function () {
+      output.innerHTML += "Status: Disconnected\n";
+    });
+
+    // read events from the server
+    socket.On("chat", function (msg) {
+      addMessage(msg);
+    });
+
+    function send() {
+      if(!input.value) return
+
+      // addMessage("Me: " + input.value); // write ourselves
+      socket.Emit("chat", JSON.stringify({userid: 'abcd', message: input.value, nickname: nickname.value, time: Date.now()})); // send chat event data to the websocket server
+      input.value = ""; // clear the input
+    }
+
+    function addMessage(msg) {
+      output.innerHTML += msg + "\n";
+    }
+
+    input.onkeydown = function(e) {
+      if(e.which === 13) send()
+    }
+  </script>
+</body>
+</html>
